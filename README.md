@@ -22,6 +22,13 @@
   <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
   [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
 
+## Descripción
+Ejemplo de plataforma de cursos con:
+1. Autenticación por google, facebook y local.
+2. Gestión de usuarios y clientes.
+3. Gestión de permisos dinámica con jwt.
+4. Migrations y documentación con swagger.
+
 ## Iniciar proyecto
 Antes de iniciar el proyecto es necesario que cree un archivo `.env` en la raíz del proyecto con la variables que se muestran en el archivo `.env-example`. En caso de querer correr el proyecto en producción el archivo de variables de entorno se deberá llamar `.prod.env`.
 
