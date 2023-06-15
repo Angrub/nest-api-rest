@@ -20,8 +20,8 @@ async function bootstrap() {
 	);
 	// Configuración Swagger en NestJS
 	const config = new DocumentBuilder()
-		.setTitle('ABA API')
-		.setDescription('Documentación de ABA API')
+		.setTitle('API')
+		.setDescription('Documentación')
 		.setVersion('1.0')
 		.addBearerAuth(
 			{
