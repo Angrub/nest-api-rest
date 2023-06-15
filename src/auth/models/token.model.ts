@@ -1,6 +1,4 @@
-import { Role } from './roles.model';
-
 export interface PayloadToken {
-	role: Role;
+	role: number;
 	sub: number;
 }

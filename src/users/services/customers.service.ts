@@ -13,20 +13,24 @@ export class CustomersService {
 	) {}
 
 	async list() {
-		return this.customerRepo.find();
+		return this.customerRepo.find({
+			where: { deleted: false },
+		});
 	}
 
 	async findOne(id: number) {
-		const customer = await this.customerRepo.findOneBy({ id });
+		const customer = await this.customerRepo.findOne({
+			where: { id, deleted: false },
+		});
 		if (!customer) throw httpErrors.notFoundError('Customer', id);
 
 		return customer;
 	}
 
 	async create(data: CreateCustomerDto) {
-		const newUser = this.customerRepo.create(data);
+		const newCustomer = this.customerRepo.create(data);
 
-		return this.customerRepo.save(newUser);
+		return this.customerRepo.save(newCustomer);
 	}
 
 	async update(id: number, data: UpdateCustomerDto) {
@@ -37,8 +41,10 @@ export class CustomersService {
 	}
 
 	async remove(id: number) {
-		await this.findOne(id);
-		await this.customerRepo.delete(id);
+		const customer = await this.findOne(id);
+		if (!customer) throw httpErrors.notFoundError('Customer', id);
+		customer.deleted = true;
+		await this.customerRepo.save(customer);
 		return { message: `#${id} removed` };
 	}
 }

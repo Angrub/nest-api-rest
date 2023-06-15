@@ -22,7 +22,7 @@ import {
 	ApiOperation,
 	ApiTags,
 } from '@nestjs/swagger';
-import { MessageResponse } from 'src/auth/dtos/success-login.dto';
+import { MessageResponse } from 'src/auth/dtos/success-auth.dto';
 
 @ApiTags('Customers')
 @Controller('customers')
@@ -34,13 +34,6 @@ export class CustomersController {
 	@ApiOperation({ summary: 'Listar clientes' })
 	list() {
 		return this.customersService.list();
-	}
-
-	@Get('/:id')
-	@ApiOkResponse({ type: CustomerSerializedDto })
-	@ApiOperation({ summary: 'Detalles del cliente' })
-	findOne(@Param('id', ParseIntPipe) id: number) {
-		return this.customersService.findOne(id);
 	}
 
 	@Post('/')

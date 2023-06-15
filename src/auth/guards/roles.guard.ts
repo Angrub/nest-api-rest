@@ -4,30 +4,30 @@ import {
 	ForbiddenException,
 	Injectable,
 } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { ROLES_KEY } from '../../decorators/role.decorator';
 import { PayloadToken } from '../models/token.model';
-import { Role } from '../models/roles.model';
+import { RolesService } from '../services/roles.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
-	constructor(private reflector: Reflector) {}
+	constructor(private rolesService: RolesService) {}
 
-	canActivate(context: ExecutionContext) {
-		const roles = this.reflector.get<Role[]>(
-			ROLES_KEY,
-			context.getHandler(),
-		);
-		if (!roles) return true;
+	async canActivate(context: ExecutionContext) {
+		try {
+			const request = context.switchToHttp().getRequest();
+			const payload: PayloadToken = request.user;
+			const role = await this.rolesService.findOneWithRelations(
+				payload.role,
+			);
+			const path = request.baseUrl + request.path;
+			const pathMatch = role.permissions.find((p) => p.path === path);
 
-		const request = context.switchToHttp().getRequest();
-		const user: PayloadToken = request.user;
-		const isAuth = roles.includes(user.role);
+			if (!pathMatch || pathMatch.method !== request.method) {
+				throw new Error();
+			}
 
-		if (!isAuth) {
+			return true;
+		} catch (err) {
 			throw new ForbiddenException('Your role is wrong');
 		}
-
-		return true;
 	}
 }

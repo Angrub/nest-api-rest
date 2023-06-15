@@ -1,7 +1,4 @@
-import {
-	NotFoundException,
-	UnprocessableEntityException,
-} from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 
 export const httpErrors = {
 	notFoundError: (entity: string, entity_id: number | number[]) => {
@@ -10,10 +7,5 @@ export const httpErrors = {
 			: `${entity} #${entity_id} not found`;
 
 		return new NotFoundException(message);
-	},
-	duplicateNameError: (name: string) => {
-		return new UnprocessableEntityException(
-			`The name ${name} already exists`,
-		);
 	},
 };

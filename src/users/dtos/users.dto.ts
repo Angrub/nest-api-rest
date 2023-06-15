@@ -1,16 +1,16 @@
 import { ApiProperty, PartialType } from '@nestjs/swagger';
 import {
 	IsEmail,
-	IsEnum,
 	IsInt,
 	IsNotEmpty,
 	IsOptional,
+	IsPositive,
 	MaxLength,
 	Min,
 	MinLength,
 } from 'class-validator';
-import { Role } from '../../auth/models/roles.model';
 import { CustomerSerializedDto } from './customers.dto';
+import { RoleWithoutRelationSerializedDto } from 'src/auth/dtos/roles.dto';
 
 export class CreateUserDto {
 	@IsInt()
@@ -31,9 +31,9 @@ export class CreateUserDto {
 	@ApiProperty({ description: 'email del usuario' })
 	readonly email: string;
 
-	@IsEnum(Role)
+	@IsPositive()
 	@ApiProperty({ description: 'rol del usuario' })
-	readonly role: Role;
+	readonly roleId: number;
 }
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {}
@@ -42,21 +42,19 @@ export class CreateOAuthUserDto {
 	readonly google_id?: string;
 	readonly facebook_id?: string;
 	readonly email: string;
-	readonly role: Role;
+	readonly roleId: number;
+	readonly password?: string;
+	readonly customerId?: number;
 }
 
-export class UserSerializedDto {
+export class UserWithoutCustomerSerializedDto {
 	readonly id: number;
 	readonly google_id: string | null;
 	readonly facebook_id: string | null;
 	readonly email: string;
-	readonly role: Role;
+	readonly role: RoleWithoutRelationSerializedDto;
 }
 
-export class UserSerializedWithCustomerIdDto extends UserSerializedDto {
-	readonly customer: number | null;
-}
-
-export class UserSerializedWithCustomerEntityDto extends UserSerializedDto {
-	readonly customer: CustomerSerializedDto;
+export class UserSerializedDto extends UserWithoutCustomerSerializedDto {
+	readonly customer: CustomerSerializedDto | null;
 }

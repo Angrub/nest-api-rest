@@ -6,7 +6,7 @@ import {
 	ApiOperation,
 	ApiTags,
 } from '@nestjs/swagger';
-import { MessageResponse } from 'src/auth/dtos/success-login.dto';
+import { MessageResponse } from 'src/auth/dtos/success-auth.dto';
 import {
 	Body,
 	Controller,
@@ -22,30 +22,22 @@ import {
 	CreateUserDto,
 	UpdateUserDto,
 	UserSerializedDto,
-	UserSerializedWithCustomerEntityDto,
-	UserSerializedWithCustomerIdDto,
 } from '../dtos/users.dto';
 import { JwtGuard } from 'src/auth/guards/jwt.guard';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @ApiTags('Users')
 @ApiBearerAuth()
-@UseGuards(JwtGuard)
+// @UseGuards(JwtGuard, RolesGuard)
 @Controller('users')
 export class UsersController {
 	constructor(private usersService: UsersService) {}
 
 	@Get('/')
-	@ApiOkResponse({ type: UserSerializedWithCustomerIdDto, isArray: true })
+	@ApiOkResponse({ type: UserSerializedDto, isArray: true })
 	@ApiOperation({ summary: 'Listar usuarios' })
 	list() {
 		return this.usersService.list();
-	}
-
-	@Get('/:id')
-	@ApiOkResponse({ type: UserSerializedWithCustomerEntityDto })
-	@ApiOperation({ summary: 'Detalles del usuario' })
-	findOne(@Param('id', ParseIntPipe) id: number) {
-		return this.usersService.findOne(id);
 	}
 
 	@Post('/')

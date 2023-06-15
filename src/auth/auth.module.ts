@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -11,7 +11,17 @@ import { VerificationCode } from './entities/verification-code.entity';
 import { GoogleStrategy } from './strategies/google.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { FacebookStrategy } from './strategies/facebook.strategy';
+import { RolesController } from './controllers/roles.controller';
+import { PermissionsController } from './controllers/permissions.controller';
+import { ViewsController } from './controllers/views.controller';
+import { RolesService } from './services/roles.service';
+import { PermissionsService } from './services/permissions.service';
+import { ViewsService } from './services/views.service';
+import { Role } from './entities/role.entity';
+import { Permission } from './entities/permission.entity';
+import { View } from './entities/view.entity';
 
+@Global()
 @Module({
 	imports: [
 		PassportModule,
@@ -25,9 +35,23 @@ import { FacebookStrategy } from './strategies/facebook.strategy';
 			}),
 		}),
 		UsersModule,
-		TypeOrmModule.forFeature([VerificationCode]),
+		TypeOrmModule.forFeature([VerificationCode, Role, Permission, View]),
 	],
-	providers: [AuthService, JwtStrategy, GoogleStrategy, FacebookStrategy],
-	controllers: [AuthController],
+	providers: [
+		AuthService,
+		JwtStrategy,
+		GoogleStrategy,
+		FacebookStrategy,
+		RolesService,
+		PermissionsService,
+		ViewsService,
+	],
+	controllers: [
+		AuthController,
+		RolesController,
+		PermissionsController,
+		ViewsController,
+	],
+	exports: [RolesService],
 })
 export class AuthModule {}

@@ -3,13 +3,14 @@ import {
 	CreateDateColumn,
 	Entity,
 	JoinColumn,
+	ManyToOne,
 	OneToOne,
 	PrimaryGeneratedColumn,
 	UpdateDateColumn,
 } from 'typeorm';
 import { Customer } from './customers.entity';
 import { Exclude } from 'class-transformer';
-import { Role } from '../../auth/models/roles.model';
+import { Role } from '../../auth/entities/role.entity';
 
 @Entity({ name: 'users' })
 export class User {
@@ -30,10 +31,11 @@ export class User {
 	@Column({ type: 'varchar', length: 255, nullable: true })
 	password?: string;
 
-	@Column({ type: 'varchar', length: 255, unique: true })
+	@Column({ type: 'varchar', length: 255 })
 	email: string;
 
-	@Column({ type: 'enum', enum: Role })
+	@ManyToOne(() => Role)
+	@JoinColumn({ name: 'role_id' })
 	role: Role;
 
 	@Exclude()

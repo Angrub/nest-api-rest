@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+	Injectable,
+	NotFoundException,
+	UnprocessableEntityException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/users.entity';
@@ -10,29 +14,44 @@ import {
 	CreateUserDto,
 	UpdateUserDto,
 } from '../dtos/users.dto';
+import { RolesService } from 'src/auth/services/roles.service';
 
 @Injectable()
 export class UsersService {
 	constructor(
 		@InjectRepository(User) private userRepo: Repository<User>,
 		private customersService: CustomersService,
+		private rolesService: RolesService,
 	) {}
 
 	private async userExist(id: number) {
-		const user = await this.userRepo.findOneBy({ id });
+		const user = await this.userRepo.findOne({
+			where: { id, deleted: false },
+		});
 		if (!user) throw httpErrors.notFoundError('User', id);
 
 		return user;
 	}
 
-	async list() {
-		return this.userRepo.find({ loadRelationIds: true });
+	async emailExist(email: string) {
+		const user = await this.userRepo.findOne({
+			where: { email, deleted: false },
+		});
+
+		return user;
 	}
 
-	async findOne(id: number) {
+	async list() {
+		return this.userRepo.find({
+			where: { deleted: false },
+			relations: { customer: true, role: true },
+		});
+	}
+
+	async findOneWithRole(id: number) {
 		const user = await this.userRepo.findOne({
-			where: { id },
-			loadRelationIds: true,
+			where: { id, deleted: false },
+			relations: { role: true },
 		});
 		if (!user) throw httpErrors.notFoundError('User', id);
 
@@ -41,15 +60,24 @@ export class UsersService {
 
 	async findOneByEmail(email: string) {
 		const user = await this.userRepo.findOne({
-			where: { email },
+			where: { email, deleted: false },
+			relations: { role: true, customer: true },
 		});
 
 		return user;
 	}
 
 	async create(data: CreateUserDto | CreateOAuthUserDto) {
+		const user = await this.emailExist(data.email);
+		if (user)
+			throw new UnprocessableEntityException(
+				`Email "${data.email}" already exist`,
+			);
 		const newUser = this.userRepo.create(data);
-		if (data instanceof CreateUserDto) {
+		const role = await this.rolesService.findOne(data.roleId);
+		newUser.role = role;
+
+		if (data.password) {
 			newUser.password = await bcrypt.hash(data.password, 10);
 			if (data.customerId)
 				newUser.customer = await this.customersService.findOne(
@@ -61,6 +89,14 @@ export class UsersService {
 	}
 
 	async update(id: number, data: UpdateUserDto) {
+		if (data.email) {
+			const userEmailExist = await this.emailExist(data.email);
+			if (userEmailExist)
+				throw new NotFoundException(
+					`Email "${data.email}" already exist`,
+				);
+		}
+
 		const user = await this.userExist(id);
 		if (data.customerId) {
 			const customer = await this.customersService.findOne(
@@ -74,8 +110,9 @@ export class UsersService {
 	}
 
 	async remove(id: number) {
-		await this.userExist(id);
-		await this.userRepo.delete(id);
+		const user = await this.userExist(id);
+		user.deleted = true;
+		await this.userRepo.save(user);
 		return { message: `#${id} removed` };
 	}
 }

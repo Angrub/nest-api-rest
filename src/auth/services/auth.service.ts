@@ -1,20 +1,25 @@
-import { Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+	Inject,
+	Injectable,
+	NotFoundException,
+	UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { User } from 'src/users/entities/users.entity';
 import { UsersService } from 'src/users/services/users.service';
 import { LoginDto } from '../dtos/login.dto';
 import { PayloadToken } from '../models/token.model';
 import * as bcrypt from 'bcrypt';
-import { Role } from '../models/roles.model';
 import { InjectRepository } from '@nestjs/typeorm';
 import { VerificationCode } from '../entities/verification-code.entity';
 import { Repository } from 'typeorm';
 import { sendMail } from 'src/helpers/send-mail.helper';
 import { ConfigType } from '@nestjs/config';
 import { config } from 'src/config';
-import { RegisterDto } from '../dtos/register.dto';
+import { RegisterDto, ResendCodeDto } from '../dtos/register.dto';
 import * as randomstring from 'randomstring';
 import { OAuthUser } from '../models/oauth-user.model';
+import { RolesService } from './roles.service';
 
 @Injectable()
 export class AuthService {
@@ -24,10 +29,11 @@ export class AuthService {
 		private verificationCodeRepo: Repository<VerificationCode>,
 		private usersService: UsersService,
 		private jwtService: JwtService,
+		private rolesService: RolesService,
 	) {}
 
 	generateJWT(user: User) {
-		const payload: PayloadToken = { role: user.role, sub: user.id };
+		const payload: PayloadToken = { role: user.role.id, sub: user.id };
 		return this.jwtService.sign(payload);
 	}
 
@@ -44,11 +50,12 @@ export class AuthService {
 	}
 
 	async registerWithPassword(data: RegisterDto) {
+		const role = await this.rolesService.findOneByRolname('customer');
 		const ONE_MINUTE = 60 * 1000;
 		const newUser = await this.usersService.create({
 			email: data.email,
 			password: data.password,
-			role: Role.CUSTOMER,
+			roleId: role.id,
 		});
 
 		const verificationCode = randomstring.generate(8);
@@ -72,14 +79,45 @@ export class AuthService {
 		);
 
 		return {
-			msg: 'User created, the verification code was sent to your email',
+			message:
+				'User created, the verification code was sent to your email',
+		};
+	}
+
+	async resendCode(data: ResendCodeDto) {
+		const ONE_MINUTE = 60 * 1000;
+		const { from, host, pass, user } = this.configService.smtp;
+		const verificationCode = randomstring.generate(8);
+		const newUser = await this.usersService.findOneByEmail(data.email);
+
+		if (!newUser) new NotFoundException('Email not found');
+
+		const newCode = this.verificationCodeRepo.create({
+			userId: newUser,
+			code: verificationCode,
+			expirationDate: new Date(Date.now() + ONE_MINUTE),
+		});
+		const savedCode = await this.verificationCodeRepo.save(newCode);
+
+		await sendMail(
+			{
+				from,
+				to: data.email,
+				subject: 'Verification code',
+				html: `<h1>${savedCode.code}</h1>`,
+			},
+			{ host, user, pass: pass },
+		);
+
+		return {
+			message: 'Forwarded message',
 		};
 	}
 
 	async validateCode(code: string) {
 		const verificationCode = await this.verificationCodeRepo.findOne({
 			where: { code },
-			relations: { userId: true },
+			loadRelationIds: true,
 		});
 
 		if (!verificationCode) throw new UnauthorizedException(`Code invalid`);
@@ -94,8 +132,10 @@ export class AuthService {
 				`Code ${verificationCode.code} expired`,
 			);
 
-		const access_token = this.generateJWT(verificationCode.userId);
-		return { user: verificationCode.userId, access_token };
+		const userId: any = verificationCode.userId;
+		const user = await this.usersService.findOneWithRole(userId);
+		const access_token = this.generateJWT(user);
+		return { user, access_token };
 	}
 
 	async oauth(authServer: 'google' | 'facebook', oauthUser?: OAuthUser) {
@@ -111,9 +151,10 @@ export class AuthService {
 			return { user, access_token };
 		}
 
+		const role = await this.rolesService.findOneByRolname('customer');
 		const data = {
 			email: oauthUser.email,
-			role: Role.CUSTOMER,
+			roleId: role.id,
 			google_id: undefined,
 			facebook_id: undefined,
 		};

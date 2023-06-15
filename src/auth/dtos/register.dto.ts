@@ -27,3 +27,11 @@ export class RegisterDto {
 	@ApiProperty({ description: 'email del usuario' })
 	readonly email: string;
 }
+
+export class ResendCodeDto {
+	@IsEmail()
+	@MaxLength(255)
+	@IsNotEmpty()
+	@ApiProperty({ description: 'email del usuario' })
+	readonly email: string;
+}
